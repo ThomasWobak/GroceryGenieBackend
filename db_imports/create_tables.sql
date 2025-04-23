@@ -14,7 +14,7 @@ CREATE TABLE "item" (
   "amount" float,
   "unit" varchar(10),
   "last_update" timestamp DEFAULT (CURRENT_TIMESTAMP),
-  "recurrence_days" integer,
+  "recurrence_days" integer DEFAULT NULL,
   "active" boolean DEFAULT true
 );
 
