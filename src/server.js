@@ -13,7 +13,6 @@ const dbPool = require('./pool.js');
 let bodyParser = require('body-parser');
 app.use(bodyParser.json());
 
-const checkAuth = require('./auth/auth.js');
 
 app.use(
     cors({
@@ -42,23 +41,13 @@ app.use(
     })
 );
 
-const loginRoutes = require('./auth/login.js');
-app.use('/login', loginRoutes);
 
 const shoppingRoutes = require('./shopping/shopping.js');
 app.use('/shopping', shoppingRoutes);
 const userRoutes = require('./user/user.js');
 app.use('/user', userRoutes);
 
-app.get('/logout', checkAuth, (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            return res.status(500).json({ error: 'Error logging out.' });
-        }
-        res.clearCookie('connect.sid'); // Clears session cookie
-        return res.status(200).json({ message: 'Logout successful' });
-    });
-});
+
 
 let port = 3000;
 app.listen(port);
