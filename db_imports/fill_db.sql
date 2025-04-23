@@ -1,3 +1,5 @@
+-- Created with ChatGPT
+
 -- Users
 INSERT INTO "user" ("auth0_key", "username", "email", "password", "profile_picture")
 VALUES

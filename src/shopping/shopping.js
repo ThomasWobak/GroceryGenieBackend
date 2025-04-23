@@ -18,7 +18,7 @@ router.get("/:product_id", async (req, res) => {
             const allListings = await pool.query(query, [req.params.product_id]);
 
             if (allListings.rows.length === 0) {
-                return res.status(404).json({ message: "No listings found" });
+                return res.status(404).json({ message: "No items found" });
             }
             res.status(200).json(allListings.rows);
         }
