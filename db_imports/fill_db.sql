@@ -5,7 +5,7 @@ TRUNCATE TABLE "user_has_shopping_list" RESTART IDENTITY CASCADE;
 TRUNCATE TABLE "shopping_list" RESTART IDENTITY CASCADE;
 TRUNCATE TABLE "user" RESTART IDENTITY CASCADE;
 
--- INSERT USERS
+-- Insert Users
 INSERT INTO "user" ("auth0_key", "username", "email", "password", "profile_picture") VALUES
   ('auth0|user001', 'alice', 'alice@example.com', 'hashedpassword1', 'https://example.com/images/alice.jpg'),
   ('auth0|user002', 'bob', 'bob@example.com', 'hashedpassword2', 'https://example.com/images/bob.jpg'),
@@ -18,19 +18,19 @@ INSERT INTO "user" ("auth0_key", "username", "email", "password", "profile_pictu
   ('auth0|user009', 'irene', 'irene@example.com', 'hashedpassword9', 'https://example.com/images/irene.jpg'),
   ('auth0|user010', 'jack', 'jack@example.com', 'hashedpassword10', 'https://example.com/images/jack.jpg');
 
--- INSERT SHOPPING LISTS
-INSERT INTO "shopping_list" ("creator_id", "title", "symbol", "item_count") VALUES
-  (1, 'Weekly Groceries', '🛒', 5),
-  (2, 'BBQ Party', '🍖', 4),
-  (3, 'Camping Trip', '🏕️', 6),
-  (4, 'Christmas Dinner', '🎄', 8),
-  (1, 'Vegan Week', '🌱', 7),
-  (5, 'Birthday Bash', '🎉', 3),
-  (6, 'Family Reunion', '👨‍👩‍👧‍👦', 6),
-  (7, 'New Year’s Eve', '🎆', 5),
-  (8, 'Office Potluck', '🥗', 4);
+-- Insert Shopping Lists (no item_count)
+INSERT INTO "shopping_list" ("creator_id", "title", "symbol") VALUES
+  (1, 'Weekly Groceries', '🛒'),
+  (2, 'BBQ Party', '🍖'),
+  (3, 'Camping Trip', '🏕️'),
+  (4, 'Christmas Dinner', '🎄'),
+  (1, 'Vegan Week', '🌱'),
+  (5, 'Birthday Bash', '🎉'),
+  (6, 'Family Reunion', '👨‍👩‍👧‍👦'),
+  (7, 'New Year’s Eve', '🎆'),
+  (8, 'Office Potluck', '🥗');
 
--- INSERT USER-SHOPPING LIST RELATIONSHIPS
+-- User-List Relations
 INSERT INTO "user_has_shopping_list" ("shopping_list_id", "user_id") VALUES
   (1, 1), (1, 2), (1, 3), (1, 4), (1, 5),
   (2, 2), (2, 3), (2, 6),
@@ -42,8 +42,7 @@ INSERT INTO "user_has_shopping_list" ("shopping_list_id", "user_id") VALUES
   (8, 7), (8, 8), (8, 9), (8, 10),
   (9, 8), (9, 9), (9, 10);
 
--- INSERT ITEMS
--- Weekly Groceries
+-- Items: Weekly Groceries
 INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_days") VALUES
   (1, 'Bananas', 6, 'pcs', 7),
   (1, 'Milk', 2, 'liters', 3),
@@ -51,14 +50,14 @@ INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_da
   (1, 'Eggs', 12, 'pcs', 7),
   (1, 'Tomatoes', 5, 'pcs', 5);
 
--- BBQ Party
+-- Items: BBQ Party
 INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_days") VALUES
   (2, 'Steaks', 4, 'pcs', NULL),
   (2, 'Corn on the cob', 6, 'pcs', NULL),
   (2, 'BBQ Sauce', 1, 'bottle', NULL),
   (2, 'Charcoal', 2, 'kg', NULL);
 
--- Camping Trip
+-- Items: Camping Trip
 INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_days") VALUES
   (3, 'Canned Beans', 5, 'cans', NULL),
   (3, 'Instant Noodles', 10, 'packs', NULL),
@@ -67,7 +66,7 @@ INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_da
   (3, 'Sunscreen', 1, 'bottle', NULL),
   (3, 'Bug Spray', 1, 'can', NULL);
 
--- Christmas Dinner
+-- Items: Christmas Dinner
 INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_days") VALUES
   (4, 'Turkey', 1, 'whole', NULL),
   (4, 'Stuffing Mix', 2, 'packs', NULL),
@@ -78,7 +77,7 @@ INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_da
   (4, 'Wine', 2, 'bottles', NULL),
   (4, 'Pumpkin Pie', 1, 'pcs', NULL);
 
--- Vegan Week
+-- Items: Vegan Week
 INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_days") VALUES
   (5, 'Tofu', 3, 'blocks', 3),
   (5, 'Almond Milk', 2, 'liters', 4),
@@ -88,13 +87,13 @@ INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_da
   (5, 'Whole Grain Bread', 1, 'loaf', 3),
   (5, 'Quinoa', 1, 'kg', 7);
 
--- Birthday Bash
+-- Items: Birthday Bash
 INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_days") VALUES
   (6, 'Cake', 1, 'pcs', NULL),
   (6, 'Soda', 6, 'bottles', NULL),
   (6, 'Chips', 4, 'bags', NULL);
 
--- Family Reunion
+-- Items: Family Reunion
 INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_days") VALUES
   (7, 'Pasta Salad', 3, 'kg', NULL),
   (7, 'Lemonade', 4, 'bottles', NULL),
@@ -103,7 +102,7 @@ INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_da
   (7, 'Fruit Platter', 1, 'tray', NULL),
   (7, 'Ice Cream', 2, 'liters', NULL);
 
--- New Year’s Eve
+-- Items: New Year's Eve
 INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_days") VALUES
   (8, 'Champagne', 2, 'bottles', NULL),
   (8, 'Fireworks', 1, 'box', NULL),
@@ -111,7 +110,7 @@ INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_da
   (8, 'Party Hats', 10, 'pcs', NULL),
   (8, 'Confetti', 1, 'bag', NULL);
 
--- Office Potluck
+-- Items: Office Potluck
 INSERT INTO "item" ("shopping_list_id", "name", "amount", "unit", "recurrence_days") VALUES
   (9, 'Pasta Bake', 1, 'tray', NULL),
   (9, 'Spring Rolls', 20, 'pcs', NULL),
