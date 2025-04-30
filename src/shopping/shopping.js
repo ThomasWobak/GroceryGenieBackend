@@ -2,9 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../pool");
 
-//TODO add new shopping list
 //TODO remove item from list
-//TODO add user to list
 //TODO remove user from list
 //TODO AUTHENTICATION for all methods
 
@@ -54,7 +52,7 @@ router.get("/user/:user_id", async (req, res) => {
 });
 
 //Update item
-router.put('/items/:item_id', async (req, res) => {
+router.put('/item/:item_id', async (req, res) => {
   const { item_id } = req.params;
   const { name, amount, unit, recurrence_days, active } = req.body;
 
@@ -130,8 +128,8 @@ router.put('/items/:item_id', async (req, res) => {
 });
 
 
-//TODO insert new item into list
-router.post('/items', async (req, res) => {
+//insert new item into list
+router.post('/item', async (req, res) => {
   const { shopping_list_id, name, amount, unit, recurrence_days, active } = req.body;
 
   // Basic input validation done by ChatGPT
@@ -221,5 +219,70 @@ router.post('/items', async (req, res) => {
     client.release();
   }
 });
+
+
+
+//add new shopping list
+router.post('/list', async (req, res) => {
+  const { creator_id, title, symbol } = req.body;
+
+  // Validate required fields done by Chatgpt
+  if (!Number.isInteger(creator_id) || creator_id <= 0) {
+    return res.status(400).json({ error: '"creator_id" must be a positive integer' });
+  }
+
+  if (typeof title !== 'string' || title.trim().length === 0) {
+    return res.status(400).json({ error: '"title" is required and must be a non-empty string' });
+  }
+
+  if (symbol !== undefined && (typeof symbol !== 'string' || symbol.length > 10)) {
+    return res.status(400).json({ error: '"symbol" must be a string (10 characters max)' });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Validate creator_id exists
+    const userCheck = await client.query('SELECT id FROM "user" WHERE id = $1', [creator_id]);
+    if (userCheck.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Invalid creator_id: user does not exist' });
+    }
+
+    // Insert shopping list
+    const listInsert = await client.query(
+      `
+        INSERT INTO shopping_list (creator_id, title, symbol)
+        VALUES ($1, $2, $3)
+        RETURNING *;
+      `,
+      [creator_id, title, symbol ?? null]
+    );
+
+    const newList = listInsert.rows[0];
+
+    // Also insert into user_has_shopping_list
+    await client.query(
+      `
+        INSERT INTO user_has_shopping_list (shopping_list_id, user_id)
+        VALUES ($1, $2);
+      `,
+      [newList.id, creator_id]
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json(newList);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error creating shopping list:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
+
+
 
 module.exports = router;
