@@ -284,5 +284,70 @@ router.post('/list', async (req, res) => {
 });
 
 
+//add user to list
+router.post('/list/user/:listId', async (req, res) => {
+  const { listId } = req.params;
+  const { user_id } = req.body;
+
+//Input field validation done by ChatGPT
+  if (!Number.isInteger(parseInt(listId))) {
+    return res.status(400).json({ error: '"listId" must be a valid integer' });
+  }
+
+  if (!Number.isInteger(user_id) || user_id <= 0) {
+    return res.status(400).json({ error: '"user_id" must be a positive integer' });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Check if the list exists
+    const listCheck = await client.query(
+      'SELECT id FROM shopping_list WHERE id = $1',
+      [listId]
+    );
+    if (listCheck.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Shopping list not found' });
+    }
+
+    // Check if the user exists
+    const userCheck = await client.query(
+      'SELECT id FROM "user" WHERE id = $1',
+      [user_id]
+    );
+    if (userCheck.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if user is already in the list
+    const alreadyAdded = await client.query(
+      'SELECT 1 FROM user_has_shopping_list WHERE shopping_list_id = $1 AND user_id = $2',
+      [listId, user_id]
+    );
+    if (alreadyAdded.rowCount > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'User is already part of the shopping list' });
+    }
+
+    // Add user to the list
+    await client.query(
+      'INSERT INTO user_has_shopping_list (shopping_list_id, user_id) VALUES ($1, $2)',
+      [listId, user_id]
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json({ message: 'User added to shopping list successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error adding user to shopping list:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
 
 module.exports = router;
