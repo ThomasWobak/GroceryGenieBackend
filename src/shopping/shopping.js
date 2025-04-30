@@ -1,10 +1,14 @@
 const express = require("express");
 const router = express.Router();
-
 const pool = require("../pool");
 
+//TODO insert new item into list
+//TODO add new shopping list
+//TODO remove item from list
+//TODO add user to list
+//TODO remove user from list
+//TODO AUTHENTICATION for all methods
 
-//TODO AUTHENTICATION
 //Get specific shopping list
 router.get("/list/:product_id", async (req, res) => {
     try {
@@ -26,7 +30,6 @@ router.get("/list/:product_id", async (req, res) => {
         res.status(500).send(`Server Error: ${error}`);
     }
 });
-//TODO ADD AUTHENTICATION
 //Get all shopping lists from a user
 router.get("/user/:user_id", async (req, res) => {
     try {
@@ -50,4 +53,73 @@ router.get("/user/:user_id", async (req, res) => {
         res.status(500).send(`Server Error: ${error}`);
     }
 });
+
+
+
+//TODO switch active status
+//Update item
+router.put('/items/:item_id', async (req, res) => {
+  const { item_id } = req.params;
+  const { name, amount, unit, recurrence_days, active } = req.body;
+
+  const updates = [];
+  const values = [];
+  let idx = 1;
+
+  if (name !== undefined) {
+    updates.push(`name = $${idx++}`);
+    values.push(name);
+  }
+  if (amount !== undefined) {
+    updates.push(`amount = $${idx++}`);
+    values.push(amount);
+  }
+  if (unit !== undefined) {
+    updates.push(`unit = $${idx++}`);
+    values.push(unit);
+  }
+  if (recurrence_days !== undefined) {
+    updates.push(`recurrence_days = $${idx++}`);
+    values.push(recurrence_days);
+  }
+  if (active !== undefined) {
+    updates.push(`active = $${idx++}`);
+    values.push(active);
+  }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ error: 'No valid fields to update' });
+  }
+
+  values.push(item_id); // WHERE clause
+
+  const query = `
+    UPDATE item
+    SET ${updates.join(', ')}, last_update = CURRENT_TIMESTAMP
+    WHERE id = $${idx}
+    RETURNING *;
+  `;
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(query, values);
+    if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    await client.query('COMMIT');
+    res.json(result.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Transaction error updating item:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
