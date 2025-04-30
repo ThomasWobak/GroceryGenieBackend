@@ -283,13 +283,13 @@ router.post('/list', async (req, res) => {
 
 
 //add user to list
-router.post('/list/user/:listId', async (req, res) => {
-  const { listId } = req.params;
+router.post('/list/user/:list_id', async (req, res) => {
+  const { list_id } = req.params;
   const { user_id } = req.body;
 
 //Input field validation done by ChatGPT
-  if (!Number.isInteger(parseInt(listId))) {
-    return res.status(400).json({ error: '"listId" must be a valid integer' });
+  if (!Number.isInteger(parseInt(list_id))) {
+    return res.status(400).json({ error: '"list_id" must be a valid integer' });
   }
 
   if (!Number.isInteger(user_id) || user_id <= 0) {
@@ -304,7 +304,7 @@ router.post('/list/user/:listId', async (req, res) => {
     // Check if the list exists
     const listCheck = await client.query(
       'SELECT id FROM shopping_list WHERE id = $1',
-      [listId]
+      [list_id]
     );
     if (listCheck.rowCount === 0) {
       await client.query('ROLLBACK');
@@ -324,7 +324,7 @@ router.post('/list/user/:listId', async (req, res) => {
     // Check if user is already in the list
     const alreadyAdded = await client.query(
       'SELECT 1 FROM user_has_shopping_list WHERE shopping_list_id = $1 AND user_id = $2',
-      [listId, user_id]
+      [list_id, user_id]
     );
     if (alreadyAdded.rowCount > 0) {
       await client.query('ROLLBACK');
@@ -334,7 +334,7 @@ router.post('/list/user/:listId', async (req, res) => {
     // Add user to the list
     await client.query(
       'INSERT INTO user_has_shopping_list (shopping_list_id, user_id) VALUES ($1, $2)',
-      [listId, user_id]
+      [list_id, user_id]
     );
 
     await client.query('COMMIT');
@@ -350,11 +350,11 @@ router.post('/list/user/:listId', async (req, res) => {
 
 
 //remove item from list
-router.delete('/item/:itemId', async (req, res) => {
-  const { itemId } = req.params;
-  const parsedId = parseInt(itemId);
-  if (!Number.isInteger(parsedId) || parsedId <= 0) {
-    return res.status(400).json({ error: '"itemId" must be a positive integer' });
+router.delete('/item/:item_id', async (req, res) => {
+  const { item_id } = req.params;
+  const list_id = parseInt(item_id);
+  if (!Number.isInteger(item_id) || item_id <= 0) {
+    return res.status(400).json({ error: '"item_id" must be a positive integer' });
   }
 
   const client = await pool.connect();
@@ -365,7 +365,7 @@ router.delete('/item/:itemId', async (req, res) => {
     // Try deleting the item
     const result = await client.query(
       'DELETE FROM item WHERE id = $1 RETURNING *;',
-      [parsedId]
+      [item_id]
     );
 
     if (result.rowCount === 0) {
