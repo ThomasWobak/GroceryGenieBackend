@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../pool");
 
-//TODO remove user from list
 //TODO AUTHENTICATION for all methods
 
 //Get specific shopping list
@@ -384,4 +383,54 @@ router.delete('/item/:itemId', async (req, res) => {
     client.release();
   }
 });
+
+
+
+//remove user from list
+router.delete('/list/user/:list_id', async (req, res) => {
+  const list_id = parseInt(req.params.list_id);
+  const user_id = parseInt(req.body.user_id);
+
+  if (!Number.isInteger(list_id) || list_id <= 0) {
+    return res.status(400).json({ error: '"list_id" must be a positive integer' });
+  }
+
+  if (!Number.isInteger(user_id) || user_id <= 0) {
+    return res.status(400).json({ error: '"userId" must be a positive integer' });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Check if user is part of the list
+    const check = await client.query(
+      'SELECT 1 FROM user_has_shopping_list WHERE shopping_list_id = $1 AND user_id = $2',
+      [list_id, user_id]
+    );
+
+    if (check.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'User is not part of this shopping list' });
+    }
+
+    // Delete the relationship
+    await client.query(
+      'DELETE FROM user_has_shopping_list WHERE shopping_list_id = $1 AND user_id = $2',
+      [list_id, user_id]
+    );
+
+    await client.query('COMMIT');
+    res.status(200).json({ message: 'User removed from shopping list' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error removing user from list:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
+
+
 module.exports = router;
