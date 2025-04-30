@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../pool");
 
-//TODO insert new item into list
 //TODO add new shopping list
 //TODO remove item from list
 //TODO add user to list
@@ -54,9 +53,6 @@ router.get("/user/:user_id", async (req, res) => {
     }
 });
 
-
-
-//TODO switch active status
 //Update item
 router.put('/items/:item_id', async (req, res) => {
   const { item_id } = req.params;
@@ -71,6 +67,9 @@ router.put('/items/:item_id', async (req, res) => {
     values.push(name);
   }
   if (amount !== undefined) {
+        if(!Number.isInteger(amount) || isNaN(amount) || amount<0){
+            return res.status(400).json({error: "Invalid value for amount."})
+        }
     updates.push(`amount = $${idx++}`);
     values.push(amount);
   }
@@ -79,17 +78,25 @@ router.put('/items/:item_id', async (req, res) => {
     values.push(unit);
   }
   if (recurrence_days !== undefined) {
+      if(!Number.isInteger(recurrence_days) || isNaN(recurrence_days)||recurrence_days<0){
+          return res.status(400).json({error: "Invalid value for recurrence_days."})
+      }
     updates.push(`recurrence_days = $${idx++}`);
     values.push(recurrence_days);
   }
   if (active !== undefined) {
+    if(active!=true&&active!=false){
+    return res.status(400).json({error: "Invalid value for active. Must be true or false"})
+    }
     updates.push(`active = $${idx++}`);
     values.push(active);
+
   }
 
   if (updates.length === 0) {
     return res.status(400).json({ error: 'No valid fields to update' });
   }
+
 
   values.push(item_id); // WHERE clause
 
@@ -121,5 +128,9 @@ router.put('/items/:item_id', async (req, res) => {
     client.release();
   }
 });
+
+
+//TODO insert new item into list
+
 
 module.exports = router;
