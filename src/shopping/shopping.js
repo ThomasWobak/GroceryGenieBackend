@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../pool");
 
-//TODO remove item from list
 //TODO remove user from list
 //TODO AUTHENTICATION for all methods
 
@@ -350,4 +349,39 @@ router.post('/list/user/:listId', async (req, res) => {
   }
 });
 
+
+//remove item from list
+router.delete('/item/:itemId', async (req, res) => {
+  const { itemId } = req.params;
+  const parsedId = parseInt(itemId);
+  if (!Number.isInteger(parsedId) || parsedId <= 0) {
+    return res.status(400).json({ error: '"itemId" must be a positive integer' });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Try deleting the item
+    const result = await client.query(
+      'DELETE FROM item WHERE id = $1 RETURNING *;',
+      [parsedId]
+    );
+
+    if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    await client.query('COMMIT');
+    res.status(200).json({ message: 'Item deleted', item: result.rows[0] });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error deleting item:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
 module.exports = router;
