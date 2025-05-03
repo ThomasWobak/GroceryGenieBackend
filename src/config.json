@@ -1,8 +1,0 @@
-{
-  "database": {
-    "host": "localhost",
-    "user": "postgres",
-    "password": "sample",
-    "db": "grocery_genie_db"
-  }
-}
