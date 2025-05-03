@@ -11,7 +11,7 @@ router.get("/list/:product_id", async (req, res) => {
             res.status(400).send("Incorrect Input");
         } else {
 
-            let query ="SELECT item.id,item.name,item.shopping_list_id, item.amount,item.unit,item.last_update,item.recurrence_days,item.active,shopping_list.title,shopping_list.symbol FROM item JOIN shopping_list ON item.shopping_list_id = shopping_list.id";
+            let query ="SELECT item.id,item.name,item.shopping_list_id, item.amount,item.unit as unit_string,item.last_update,item.recurrence_days,item.active,shopping_list.title,shopping_list.symbol FROM item JOIN shopping_list ON item.shopping_list_id = shopping_list.id";
             query += " WHERE shopping_list.id = $1;";
 
             const allListings = await pool.query(query, [req.params.product_id]);
@@ -32,9 +32,9 @@ router.get("/user/:user_id", async (req, res) => {
             res.status(400).send("Incorrect Input");
         } else {
 
-            let query ="SELECT sl.id AS shopping_list_id, sl.title AS shopping_list_title, sl.symbol, sl.item_count, sl.created_at AS list_created_at, i.id AS item_id, i.name AS item_name, i.amount, i.unit, i.last_update, i.recurrence_days, i.active ";
-            query+="FROM shopping_list sl LEFT JOIN user_has_shopping_list uhsl ON sl.id = uhsl.shopping_list_id INNER JOIN item i ON i.shopping_list_id = sl.id "
-            query+="WHERE uhsl.user_id = $1 ORDER BY sl.id, i.id;"
+            let query ="SELECT item.id,item.name,item.shopping_list_id, item.amount,item.unit as unit_string,item.last_update,item.recurrence_days,item.active,shopping_list.title,shopping_list.symbol ";
+            query+="FROM shopping_list LEFT JOIN user_has_shopping_list uhsl ON shopping_list.id = uhsl.shopping_list_id INNER JOIN item ON item.shopping_list_id = shopping_list.id "
+            query+="WHERE uhsl.user_id = $1 "
 
 
             const allLists = await pool.query(query, [req.params.user_id]);
