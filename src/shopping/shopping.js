@@ -11,7 +11,7 @@ router.get("/list/:product_id", async (req, res) => {
             res.status(400).send("Incorrect Input");
         } else {
 
-            let query ="SELECT item.id,item.name,item.amount,item.unit,item.last_update,item.recurrence_days,item.active,shopping_list.title,shopping_list.symbol FROM item JOIN shopping_list ON item.shopping_list_id = shopping_list.id";
+            let query ="SELECT item.id,item.name,item.shopping_list_id, item.amount,item.unit,item.last_update,item.recurrence_days,item.active,shopping_list.title,shopping_list.symbol FROM item JOIN shopping_list ON item.shopping_list_id = shopping_list.id";
             query += " WHERE shopping_list.id = $1;";
 
             const allListings = await pool.query(query, [req.params.product_id]);
