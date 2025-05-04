@@ -8,7 +8,8 @@ const pool = require("../pool");
 router.get("/list/:product_id", async (req, res) => {
     try {
         if (isNaN(req.params.product_id)) {
-            res.status(400).send("Incorrect Input");
+            return res.status(400).send("Incorrect Input");
+
         } else {
 
             let query ="SELECT item.id,item.name,item.shopping_list_id, item.amount,item.unit as unit_string,item.last_update,item.recurrence_days,item.active,shopping_list.title,shopping_list.symbol FROM item JOIN shopping_list ON item.shopping_list_id = shopping_list.id";
@@ -29,7 +30,8 @@ router.get("/list/:product_id", async (req, res) => {
 router.get("/user/:user_id", async (req, res) => {
     try {
         if (isNaN(req.params.user_id)) {
-            res.status(400).send("Incorrect Input");
+            return res.status(400).send("Incorrect Input");
+
         } else {
 
             let query ="SELECT item.id,item.name,item.shopping_list_id, item.amount,item.unit as unit_string,item.last_update,item.recurrence_days,item.active,shopping_list.title,shopping_list.symbol ";
@@ -62,24 +64,32 @@ router.put('/item/:item_id', async (req, res) => {
     updates.push(`name = $${idx++}`);
     values.push(name);
   }
-  if (amount !== undefined) {
-        if(!Number.isInteger(amount) || isNaN(amount) || amount<0){
-            return res.status(400).json({error: "Invalid value for amount."})
-        }
-    updates.push(`amount = $${idx++}`);
-    values.push(amount);
+  try{
+    if (amount !== undefined) {
+        parsedAmount=parseInt(amount,10)
+            if(!Number.isInteger(parsedAmount) || isNaN(parsedAmount) || parsedAmount<0){
+                return res.status(400).json({error: "Invalid value for amount."})
+            }
+        updates.push(`amount = $${idx++}`);
+        values.push(parsedAmount);
+      }
+     if (recurrence_days !== undefined) {
+        parsedRecurrence_days=parseInt(recurrence_days,10)
+         if(!Number.isInteger(parsedRecurrence_days) || isNaN(parsedRecurrence_days)||parsedRecurrence_days<0){
+             return res.status(400).json({error: "Invalid value for recurrence_days."})
+         }
+       updates.push(`recurrence_days = $${idx++}`);
+       values.push(parsedRecurrence_days);
+     }
+  }catch{
+    return res.status(400).json({error: "Invalid input for amount or recurrence_days"})
   }
+
   if (unit !== undefined) {
     updates.push(`unit = $${idx++}`);
     values.push(unit);
   }
-  if (recurrence_days !== undefined) {
-      if(!Number.isInteger(recurrence_days) || isNaN(recurrence_days)||recurrence_days<0){
-          return res.status(400).json({error: "Invalid value for recurrence_days."})
-      }
-    updates.push(`recurrence_days = $${idx++}`);
-    values.push(recurrence_days);
-  }
+
   if (active !== undefined) {
     if(active!=true&&active!=false){
     return res.status(400).json({error: "Invalid value for active. Must be true or false"})
@@ -352,10 +362,16 @@ router.post('/list/user/:list_id', async (req, res) => {
 //remove item from list
 router.delete('/item/:item_id', async (req, res) => {
   const { item_id } = req.params;
-  const list_id = parseInt(item_id);
-  if (!Number.isInteger(item_id) || item_id <= 0) {
-    return res.status(400).json({ error: '"item_id" must be a positive integer' });
+  const itemIdNum=parseInt(item_id,10)
+  try{
+
+      if (!Number.isInteger(itemIdNum) || itemIdNum <= 0) {
+        return res.status(400).json({ error: '"item_id" must be a positive integer' });
+      }
+  }catch{
+    return res.status(400).json({error: "Error with item_id"});
   }
+
 
   const client = await pool.connect();
 
@@ -365,7 +381,7 @@ router.delete('/item/:item_id', async (req, res) => {
     // Try deleting the item
     const result = await client.query(
       'DELETE FROM item WHERE id = $1 RETURNING *;',
-      [item_id]
+      [itemIdNum]
     );
 
     if (result.rowCount === 0) {
@@ -390,6 +406,7 @@ router.delete('/item/:item_id', async (req, res) => {
 router.delete('/list/user/:list_id', async (req, res) => {
   const list_id = parseInt(req.params.list_id);
   const user_id = parseInt(req.body.user_id);
+
 
   if (!Number.isInteger(list_id) || list_id <= 0) {
     return res.status(400).json({ error: '"list_id" must be a positive integer' });
