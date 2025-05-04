@@ -30,4 +30,3 @@ bin/
 
 ### Environment Variables
 .env
-/src/config.json
