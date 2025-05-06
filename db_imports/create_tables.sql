@@ -41,3 +41,32 @@ ALTER TABLE "item" ADD FOREIGN KEY ("shopping_list_id") REFERENCES "shopping_lis
 ALTER TABLE "user_has_shopping_list" ADD FOREIGN KEY ("shopping_list_id") REFERENCES "shopping_list" ("id");
 
 ALTER TABLE "user_has_shopping_list" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id");
+
+-- Trigger function for incrementing item_count
+CREATE OR REPLACE FUNCTION update_shopping_list_item_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE shopping_list
+    SET item_count = item_count + 1
+    WHERE id = NEW.shopping_list_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE shopping_list
+    SET item_count = item_count - 1
+    WHERE id = OLD.shopping_list_id;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for INSERT operations
+CREATE TRIGGER increment_item_count
+AFTER INSERT ON item
+FOR EACH ROW
+EXECUTE FUNCTION update_shopping_list_item_count();
+
+-- Trigger for DELETE operations
+CREATE TRIGGER decrement_item_count
+AFTER DELETE ON item
+FOR EACH ROW
+EXECUTE FUNCTION update_shopping_list_item_count();
