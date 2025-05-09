@@ -21,11 +21,6 @@ CREATE TABLE "item" (
 CREATE TABLE "user" (
   "id" SERIAL PRIMARY KEY,
   "auth0_key" varchar UNIQUE,
-  "username" varchar NOT NULL,
-  "email" varchar UNIQUE NOT NULL,
-  "password" varchar NOT NULL,
-  "profile_picture" varchar,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "user_has_shopping_list" (

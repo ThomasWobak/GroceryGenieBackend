@@ -7,17 +7,17 @@ TRUNCATE TABLE "shopping_list" RESTART IDENTITY CASCADE;
 TRUNCATE TABLE "user" RESTART IDENTITY CASCADE;
 
 -- Insert Users
-INSERT INTO "user" ("auth0_key", "username", "email", "password", "profile_picture") VALUES
-  ('auth0|user001', 'alice', 'alice@example.com', 'hashedpassword1', 'https://example.com/images/alice.jpg'),
-  ('auth0|user002', 'bob', 'bob@example.com', 'hashedpassword2', 'https://example.com/images/bob.jpg'),
-  ('auth0|user003', 'charlie', 'charlie@example.com', 'hashedpassword3', 'https://example.com/images/charlie.jpg'),
-  ('auth0|user004', 'diana', 'diana@example.com', 'hashedpassword4', 'https://example.com/images/diana.jpg'),
-  ('auth0|user005', 'eve', 'eve@example.com', 'hashedpassword5', 'https://example.com/images/eve.jpg'),
-  ('auth0|user006', 'frank', 'frank@example.com', 'hashedpassword6', 'https://example.com/images/frank.jpg'),
-  ('auth0|user007', 'grace', 'grace@example.com', 'hashedpassword7', 'https://example.com/images/grace.jpg'),
-  ('auth0|user008', 'henry', 'henry@example.com', 'hashedpassword8', 'https://example.com/images/henry.jpg'),
-  ('auth0|user009', 'irene', 'irene@example.com', 'hashedpassword9', 'https://example.com/images/irene.jpg'),
-  ('auth0|user010', 'jack', 'jack@example.com', 'hashedpassword10', 'https://example.com/images/jack.jpg');
+INSERT INTO "user" ("auth0_key") VALUES
+  ('auth0|user001'),
+  ('auth0|user002'),
+  ('auth0|user003'),
+  ('auth0|user004'),
+  ('auth0|user005'),
+  ('auth0|user006'),
+  ('auth0|user007'),
+  ('auth0|user008'),
+  ('auth0|user009'),
+  ('auth0|user010');
 
 -- Insert Shopping Lists
 INSERT INTO "shopping_list" ("creator_id", "title", "symbol") VALUES
