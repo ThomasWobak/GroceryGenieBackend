@@ -1,3 +1,23 @@
+-- Drop triggers
+DROP TRIGGER IF EXISTS increment_item_count ON item;
+DROP TRIGGER IF EXISTS decrement_item_count ON item;
+
+-- Drop trigger function
+DROP FUNCTION IF EXISTS update_shopping_list_item_count();
+
+-- Drop dependent tables in correct order
+DROP TABLE IF EXISTS user_has_shopping_list CASCADE;
+DROP TABLE IF EXISTS item CASCADE;
+DROP TABLE IF EXISTS shopping_list CASCADE;
+DROP TABLE IF EXISTS "user" CASCADE;
+
+-- Create tables
+
+CREATE TABLE "user" (
+  "id" SERIAL PRIMARY KEY,
+  "auth0_key" varchar UNIQUE
+);
+
 CREATE TABLE "shopping_list" (
   "id" SERIAL PRIMARY KEY,
   "creator_id" integer NOT NULL,
@@ -18,24 +38,25 @@ CREATE TABLE "item" (
   "active" boolean DEFAULT true
 );
 
-CREATE TABLE "user" (
-  "id" SERIAL PRIMARY KEY,
-  "auth0_key" varchar UNIQUE,
-);
-
 CREATE TABLE "user_has_shopping_list" (
   "shopping_list_id" integer NOT NULL,
   "user_id" integer NOT NULL,
   PRIMARY KEY ("shopping_list_id", "user_id")
 );
 
-ALTER TABLE "shopping_list" ADD FOREIGN KEY ("creator_id") REFERENCES "user" ("id");
+-- Foreign keys
 
-ALTER TABLE "item" ADD FOREIGN KEY ("shopping_list_id") REFERENCES "shopping_list" ("id");
+ALTER TABLE "shopping_list"
+  ADD FOREIGN KEY ("creator_id") REFERENCES "user" ("id");
 
-ALTER TABLE "user_has_shopping_list" ADD FOREIGN KEY ("shopping_list_id") REFERENCES "shopping_list" ("id");
+ALTER TABLE "item"
+  ADD FOREIGN KEY ("shopping_list_id") REFERENCES "shopping_list" ("id");
 
-ALTER TABLE "user_has_shopping_list" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id");
+ALTER TABLE "user_has_shopping_list"
+  ADD FOREIGN KEY ("shopping_list_id") REFERENCES "shopping_list" ("id");
+
+ALTER TABLE "user_has_shopping_list"
+  ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id");
 
 -- Trigger function for incrementing item_count
 CREATE OR REPLACE FUNCTION update_shopping_list_item_count()
@@ -54,13 +75,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger for INSERT operations
+-- Triggers
 CREATE TRIGGER increment_item_count
 AFTER INSERT ON item
 FOR EACH ROW
 EXECUTE FUNCTION update_shopping_list_item_count();
 
--- Trigger for DELETE operations
 CREATE TRIGGER decrement_item_count
 AFTER DELETE ON item
 FOR EACH ROW
