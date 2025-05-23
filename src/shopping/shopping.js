@@ -28,15 +28,14 @@ router.get("/list/:product_id", async (req, res) => {
 });
 //Get all shopping lists from a user
 router.get("/user/:user_id", async (req, res) => {
+
     try {
-        if (isNaN(req.params.user_id)) {
-            return res.status(400).send("Incorrect Input");
 
-        } else {
 
-            let query ="SELECT item.id,item.name,item.shopping_list_id, item.amount,item.unit as unit_string,item.last_update,item.recurrence_days,item.active,shopping_list.title,shopping_list.symbol ";
-            query+="FROM shopping_list LEFT JOIN user_has_shopping_list uhsl ON shopping_list.id = uhsl.shopping_list_id INNER JOIN item ON item.shopping_list_id = shopping_list.id "
-            query+="WHERE uhsl.user_id = $1 "
+            // Inside your fetchItemsByAuth0Key function:
+            const query = 'SELECT item.id AS item_id, item.name AS item_name, item.shopping_list_id AS shopping_list_id, item.amount AS item_amount, item.unit AS unit_string, item.last_update, item.recurrence_days, item.active, shopping_list.title AS shopping_list_title, shopping_list.symbol AS shopping_list_symbol, shopping_list.item_count FROM shopping_list INNER JOIN user_has_shopping_list uhsl ON shopping_list.id = uhsl.shopping_list_id INNER JOIN "user" u ON uhsl.user_id = u.id INNER JOIN item ON item.shopping_list_id = shopping_list.id WHERE u.auth0_key = $1';
+
+
 
 
             const allLists = await pool.query(query, [req.params.user_id]);
@@ -45,7 +44,7 @@ router.get("/user/:user_id", async (req, res) => {
                 return res.status(404).json({ message: "No items found" });
             }
             res.status(200).json(allLists.rows);
-        }
+
     } catch (error) {
         res.status(500).send(`Server Error: ${error}`);
     }
@@ -399,8 +398,6 @@ router.delete('/item/:item_id', async (req, res) => {
     client.release();
   }
 });
-
-
 
 //remove user from list
 router.delete('/list/user/:list_id', async (req, res) => {
