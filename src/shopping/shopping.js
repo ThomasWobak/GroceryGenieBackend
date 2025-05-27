@@ -12,7 +12,7 @@ router.get("/list/:product_id", async (req, res) => {
 
         } else {
 
-            let query ="SELECT item.id,item.name,item.shopping_list_id, item.amount,item.unit as unit_string,item.last_update,item.recurrence_days,item.active,shopping_list.title,shopping_list.symbol FROM item JOIN shopping_list ON item.shopping_list_id = shopping_list.id";
+            let query ="SELECT item.id,item.name,item.shopping_list_id, item.amount,item.unit as unit_string,item.last_update,item.recurrence_days,item.active,shopping_list.title as shopping_list_title,shopping_list.symbol as shopping_list_symbol FROM item JOIN shopping_list ON item.shopping_list_id = shopping_list.id";
             query += " WHERE shopping_list.id = $1;";
 
             const allListings = await pool.query(query, [req.params.product_id]);
@@ -26,17 +26,14 @@ router.get("/list/:product_id", async (req, res) => {
         res.status(500).send(`Server Error: ${error}`);
     }
 });
+
+
 //Get all shopping lists from a user
 router.get("/user/:user_id", async (req, res) => {
 
     try {
-
-
-            // Inside your fetchItemsByAuth0Key function:
-            const query = 'SELECT item.id AS item_id, item.name AS item_name, item.shopping_list_id AS shopping_list_id, item.amount AS item_amount, item.unit AS unit_string, item.last_update, item.recurrence_days, item.active, shopping_list.title AS shopping_list_title, shopping_list.symbol AS shopping_list_symbol, shopping_list.item_count FROM shopping_list INNER JOIN user_has_shopping_list uhsl ON shopping_list.id = uhsl.shopping_list_id INNER JOIN "user" u ON uhsl.user_id = u.id INNER JOIN item ON item.shopping_list_id = shopping_list.id WHERE u.auth0_key = $1';
-
-
-
+           // const query = 'SELECT item.id AS item_id, item.name AS item_name, item.shopping_list_id AS shopping_list_id, item.amount AS item_amount, item.unit AS unit_string, item.last_update, item.recurrence_days, item.active, shopping_list.title AS shopping_list_title, shopping_list.symbol AS shopping_list_symbol, shopping_list.item_count FROM shopping_list INNER JOIN user_has_shopping_list uhsl ON shopping_list.id = uhsl.shopping_list_id INNER JOIN "user" u ON uhsl.user_id = u.id INNER JOIN item ON item.shopping_list_id = shopping_list.id WHERE u.auth0_key = $1';
+            const query = 'SELECT shopping_list.id as shopping_list_id, shopping_list.title AS shopping_list_title, shopping_list.symbol AS shopping_list_symbol, shopping_list.item_count FROM shopping_list INNER JOIN user_has_shopping_list uhsl ON shopping_list.id = uhsl.shopping_list_id INNER JOIN "user" u ON uhsl.user_id = u.id WHERE u.auth0_key = $1';
 
             const allLists = await pool.query(query, [req.params.user_id]);
 
@@ -52,9 +49,10 @@ router.get("/user/:user_id", async (req, res) => {
 
 //Update item
 router.put('/item/:item_id', async (req, res) => {
+
   const { item_id } = req.params;
   const { name, amount, unit, recurrence_days, active } = req.body;
-
+  console.log(item_id);
   const updates = [];
   const values = [];
   let idx = 1;
@@ -229,21 +227,27 @@ router.post('/item', async (req, res) => {
 
 
 
-//add new shopping list
+// add new shopping list by auth0 key
 router.post('/list', async (req, res) => {
-  const { creator_id, title, symbol } = req.body;
+  const { creator_auth0_key, title, symbol } = req.body;
 
-  // Validate required fields done by Chatgpt
-  if (!Number.isInteger(creator_id) || creator_id <= 0) {
-    return res.status(400).json({ error: '"creator_id" must be a positive integer' });
+  // Input validation done by ChatGPT
+  if (typeof creator_auth0_key !== 'string' || creator_auth0_key.trim().length === 0) {
+    return res
+      .status(400)
+      .json({ error: '"creator_auth0_key" is required and must be a non-empty string' });
   }
 
   if (typeof title !== 'string' || title.trim().length === 0) {
-    return res.status(400).json({ error: '"title" is required and must be a non-empty string' });
+    return res
+      .status(400)
+      .json({ error: '"title" is required and must be a non-empty string' });
   }
 
   if (symbol !== undefined && (typeof symbol !== 'string' || symbol.length > 10)) {
-    return res.status(400).json({ error: '"symbol" must be a string (10 characters max)' });
+    return res
+      .status(400)
+      .json({ error: '"symbol" must be a string (10 characters max)' });
   }
 
   const client = await pool.connect();
@@ -251,33 +255,27 @@ router.post('/list', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // Validate creator_id exists
-    const userCheck = await client.query('SELECT id FROM "user" WHERE id = $1', [creator_id]);
+    // Lookup user by auth0_key
+    const userCheck = await client.query(
+      `SELECT id FROM "user" WHERE auth0_key = $1`,
+      [creator_auth0_key.trim()]
+    );
     if (userCheck.rowCount === 0) {
       await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'Invalid creator_id: user does not exist' });
+      return res
+        .status(400)
+        .json({ error: 'Invalid creator_auth0_key: user does not exist' });
     }
+    const creatorId = userCheck.rows[0].id;
 
     // Insert shopping list
-    const listInsert = await client.query(
-      `
-        INSERT INTO shopping_list (creator_id, title, symbol)
-        VALUES ($1, $2, $3)
-        RETURNING *;
-      `,
-      [creator_id, title, symbol ?? null]
-    );
-
+    const queryList='INSERT INTO shopping_list (creator_id, title, symbol) VALUES ($1, $2, $3) RETURNING *;';
+    const listInsert = await client.query(queryList, [creatorId, title.trim(), symbol ?? null]);
     const newList = listInsert.rows[0];
 
     // Also insert into user_has_shopping_list
-    await client.query(
-      `
-        INSERT INTO user_has_shopping_list (shopping_list_id, user_id)
-        VALUES ($1, $2);
-      `,
-      [newList.id, creator_id]
-    );
+    const queryUser='INSERT INTO user_has_shopping_list (shopping_list_id, user_id) VALUES ($1, $2);';
+    await client.query(queryUser, [newList.id, creatorId]);
 
     await client.query('COMMIT');
     res.status(201).json(newList);
@@ -289,6 +287,7 @@ router.post('/list', async (req, res) => {
     client.release();
   }
 });
+
 
 
 //add user to list
@@ -358,38 +357,83 @@ router.post('/list/user/:list_id', async (req, res) => {
 });
 
 
-//remove item from list
+// remove an item from a shopping list, only if the user is part of that list
 router.delete('/item/:item_id', async (req, res) => {
   const { item_id } = req.params;
-  const itemIdNum=parseInt(item_id,10)
-  try{
+  const { user_auth0_key } = req.body;
 
-      if (!Number.isInteger(itemIdNum) || itemIdNum <= 0) {
-        return res.status(400).json({ error: '"item_id" must be a positive integer' });
-      }
-  }catch{
-    return res.status(400).json({error: "Error with item_id"});
+  // Validate item_id
+  const itemId = parseInt(item_id, 10);
+  if (!Number.isInteger(itemId) || itemId <= 0) {
+    return res
+      .status(400)
+      .json({ error: '"item_id" path param must be a positive integer' });
   }
 
+  // Validate auth0 key
+  if (typeof user_auth0_key !== 'string' || user_auth0_key.trim().length === 0) {
+    return res
+      .status(400)
+      .json({ error: '"user_auth0_key" is required in body and must be a non-empty string' });
+  }
 
   const client = await pool.connect();
-
   try {
     await client.query('BEGIN');
 
-    // Try deleting the item
-    const result = await client.query(
-      'DELETE FROM item WHERE id = $1 RETURNING *;',
-      [itemIdNum]
+    // 1) Lookup the user by auth0_key
+    const userRes = await client.query(
+      `SELECT id FROM "user" WHERE auth0_key = $1`,
+      [user_auth0_key.trim()]
     );
-
-    if (result.rowCount === 0) {
+    if (userRes.rowCount === 0) {
       await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Item not found' });
+      return res
+        .status(403)
+        .json({ error: 'Invalid user_auth0_key: user not found' });
+    }
+    const userId = userRes.rows[0].id;
+
+    // 2) Fetch the item and its shopping_list_id
+    const itemRes = await client.query(
+      `SELECT shopping_list_id FROM item WHERE id = $1`,
+      [itemId]
+    );
+    if (itemRes.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res
+        .status(404)
+        .json({ error: 'Item not found' });
+    }
+    const listId = itemRes.rows[0].shopping_list_id;
+
+    // 3) Verify the user is associated with that shopping list
+    const assocRes = await client.query(
+      `SELECT 1
+         FROM user_has_shopping_list
+        WHERE shopping_list_id = $1
+          AND user_id = $2`,
+      [listId, userId]
+    );
+    if (assocRes.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res
+        .status(403)
+        .json({ error: 'You do not have permission to modify this list' });
     }
 
+    // 4) Delete the item
+    const delRes = await client.query(
+      `DELETE FROM item
+        WHERE id = $1
+      RETURNING *`,
+      [itemId]
+    );
     await client.query('COMMIT');
-    res.status(200).json({ message: 'Item deleted', item: result.rows[0] });
+
+    res
+      .status(200)
+      .json({ message: 'Item deleted', item: delRes.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Error deleting item:', err);
@@ -398,6 +442,7 @@ router.delete('/item/:item_id', async (req, res) => {
     client.release();
   }
 });
+
 
 //remove user from list
 router.delete('/list/user/:list_id', async (req, res) => {
@@ -446,5 +491,91 @@ router.delete('/list/user/:list_id', async (req, res) => {
   }
 });
 
+
+
+// delete a shopping list (and its related data) by auth0 key
+router.delete('/list/:shopping_list_id', async (req, res) => {
+  const { shopping_list_id } = req.params;
+  const { auth0_key } = req.body;
+
+  // Validate path param
+  const listId = parseInt(shopping_list_id, 10);
+  if (!Number.isInteger(listId) || listId <= 0) {
+    return res
+      .status(400)
+      .json({ error: '"shopping_list_id" path param must be a positive integer' });
+  }
+
+  // Validate body
+  if (typeof auth0_key !== 'string' || auth0_key.trim().length === 0) {
+    return res
+      .status(400)
+      .json({ error: '"auth0_key" is required in body and must be a non-empty string' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1) Lookup user by auth0_key
+    const userRes = await client.query(
+      'SELECT u.id FROM public."user" u where u.auth0_key=$1',
+      [auth0_key.trim()]
+    );
+    if (userRes.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res
+        .status(403)
+        .json({ error: 'Invalid auth0_key: user not found or not authorized' });
+    }
+    const userId = userRes.rows[0].id;
+
+    // 2) Ensure the shopping list exists and is owned by that user
+    const listRes = await client.query(
+      'SELECT creator_id FROM shopping_list WHERE id = $1',
+      [listId]
+    );
+    if (listRes.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res
+        .status(404)
+        .json({ error: `Shopping list ${listId} not found` });
+    }
+    if (listRes.rows[0].creator_id !== userId) {
+      await client.query('ROLLBACK');
+      return res
+        .status(403)
+        .json({ error: 'You are not the creator of this shopping list' });
+    }
+
+    // 3) Remove all entries in user_has_shopping_list for that list
+    await client.query(
+      'DELETE FROM user_has_shopping_list WHERE shopping_list_id = $1',
+      [listId]
+    );
+
+    // 4) Remove all items belonging to that shopping list
+    await client.query(
+      'DELETE FROM item WHERE shopping_list_id = $1',
+      [listId]
+    );
+
+    // 5) Remove the shopping_list itself
+    await client.query(
+      'DELETE FROM shopping_list WHERE id = $1',
+      [listId]
+    );
+
+    await client.query('COMMIT');
+    // 204 No Content indicates successful deletion with no body
+    return res.sendStatus(204);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error deleting shopping list:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
 
 module.exports = router;
