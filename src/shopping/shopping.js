@@ -52,7 +52,7 @@ router.put('/item/:item_id', async (req, res) => {
 
   const { item_id } = req.params;
   const { name, amount, unit, recurrence_days, active } = req.body;
-  console.log(item_id);
+
   const updates = [];
   const values = [];
   let idx = 1;
@@ -381,7 +381,7 @@ router.delete('/item/:item_id', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // 1) Lookup the user by auth0_key
+    // Lookup the user by auth0_key
     const userRes = await client.query(
       `SELECT id FROM "user" WHERE auth0_key = $1`,
       [user_auth0_key.trim()]
@@ -394,7 +394,7 @@ router.delete('/item/:item_id', async (req, res) => {
     }
     const userId = userRes.rows[0].id;
 
-    // 2) Fetch the item and its shopping_list_id
+    // Fetch the item and its shopping_list_id
     const itemRes = await client.query(
       `SELECT shopping_list_id FROM item WHERE id = $1`,
       [itemId]
@@ -407,7 +407,7 @@ router.delete('/item/:item_id', async (req, res) => {
     }
     const listId = itemRes.rows[0].shopping_list_id;
 
-    // 3) Verify the user is associated with that shopping list
+    // Verify the user is associated with that shopping list
     const assocRes = await client.query(
       `SELECT 1
          FROM user_has_shopping_list
@@ -422,7 +422,7 @@ router.delete('/item/:item_id', async (req, res) => {
         .json({ error: 'You do not have permission to modify this list' });
     }
 
-    // 4) Delete the item
+    //Delete the item
     const delRes = await client.query(
       `DELETE FROM item
         WHERE id = $1
@@ -517,7 +517,7 @@ router.delete('/list/:shopping_list_id', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // 1) Lookup user by auth0_key
+    //  Lookup user by auth0_key
     const userRes = await client.query(
       'SELECT u.id FROM public."user" u where u.auth0_key=$1',
       [auth0_key.trim()]
@@ -530,7 +530,7 @@ router.delete('/list/:shopping_list_id', async (req, res) => {
     }
     const userId = userRes.rows[0].id;
 
-    // 2) Ensure the shopping list exists and is owned by that user
+    // Ensure the shopping list exists and is owned by that user
     const listRes = await client.query(
       'SELECT creator_id FROM shopping_list WHERE id = $1',
       [listId]
@@ -548,19 +548,19 @@ router.delete('/list/:shopping_list_id', async (req, res) => {
         .json({ error: 'You are not the creator of this shopping list' });
     }
 
-    // 3) Remove all entries in user_has_shopping_list for that list
+    // Remove all entries in user_has_shopping_list for that list
     await client.query(
       'DELETE FROM user_has_shopping_list WHERE shopping_list_id = $1',
       [listId]
     );
 
-    // 4) Remove all items belonging to that shopping list
+    // Remove all items belonging to that shopping list
     await client.query(
       'DELETE FROM item WHERE shopping_list_id = $1',
       [listId]
     );
 
-    // 5) Remove the shopping_list itself
+    // Remove the shopping_list itself
     await client.query(
       'DELETE FROM shopping_list WHERE id = $1',
       [listId]
