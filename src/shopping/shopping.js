@@ -13,13 +13,11 @@ router.get("/list/:product_id", async (req, res) => {
         } else {
 
             let query ="SELECT item.id,item.name,item.shopping_list_id, item.amount,item.unit as unit_string,item.last_update,item.recurrence_days,item.active,shopping_list.title as shopping_list_title,shopping_list.symbol as shopping_list_symbol FROM item JOIN shopping_list ON item.shopping_list_id = shopping_list.id";
-            query += " WHERE shopping_list.id = $1;";
+            query += " WHERE shopping_list.id = $1";
+            query += " ORDER BY item.active DESC, item.last_update DESC;";
 
             const allListings = await pool.query(query, [req.params.product_id]);
 
-            if (allListings.rows.length === 0) {
-                return res.status(404).json({ message: "No items found" });
-            }
             res.status(200).json(allListings.rows);
         }
     } catch (error) {
@@ -37,10 +35,14 @@ router.get("/user/:user_id", async (req, res) => {
 
             const allLists = await pool.query(query, [req.params.user_id]);
 
-            if (allLists.rows.length === 0) {
-                return res.status(404).json({ message: "No items found" });
-            }
-            res.status(200).json(allLists.rows);
+            //TODO: Actually load the profile images from auth0
+            const response = allLists.rows.map(
+                row => ({
+                  ...row,
+                  userProfileImages: ["https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyzTWQoCUbRNdiyorem5Qp1zYYhpliR9q0Bw&s", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyzTWQoCUbRNdiyorem5Qp1zYYhpliR9q0Bw&s"]
+                })
+            )
+            res.status(200).json(response);
 
     } catch (error) {
         res.status(500).send(`Server Error: ${error}`);
@@ -360,7 +362,7 @@ router.post('/list/user/:list_id', async (req, res) => {
 // remove an item from a shopping list, only if the user is part of that list
 router.delete('/item/:item_id', async (req, res) => {
   const { item_id } = req.params;
-  const { user_auth0_key } = req.body;
+  const  { user_auth0_key }  = req.headers
 
   // Validate item_id
   const itemId = parseInt(item_id, 10);
@@ -374,7 +376,7 @@ router.delete('/item/:item_id', async (req, res) => {
   if (typeof user_auth0_key !== 'string' || user_auth0_key.trim().length === 0) {
     return res
       .status(400)
-      .json({ error: '"user_auth0_key" is required in body and must be a non-empty string' });
+      .json({ error: '"user_auth0_key" is required in headers and must be a non-empty string' });
   }
 
   const client = await pool.connect();
@@ -496,7 +498,7 @@ router.delete('/list/user/:list_id', async (req, res) => {
 // delete a shopping list (and its related data) by auth0 key
 router.delete('/list/:shopping_list_id', async (req, res) => {
   const { shopping_list_id } = req.params;
-  const { auth0_key } = req.body;
+  const auth0_key = req.headers.get("user_auth0_key")
 
   // Validate path param
   const listId = parseInt(shopping_list_id, 10);
