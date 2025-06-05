@@ -32,7 +32,7 @@ CREATE TABLE "item" (
   "shopping_list_id" integer NOT NULL,
   "name" varchar NOT NULL,
   "amount" float,
-  "unit" varchar(10),
+  "unit" varchar(15),
   "last_update" timestamp DEFAULT (CURRENT_TIMESTAMP),
   "recurrence_days" integer DEFAULT NULL,
   "active" boolean DEFAULT true

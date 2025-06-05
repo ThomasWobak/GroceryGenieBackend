@@ -5,9 +5,9 @@ const pool = require("../pool");
 //TODO AUTHENTICATION for all methods
 
 //Get specific shopping list
-router.get("/list/:product_id", async (req, res) => {
+router.get("/list/:listId", async (req, res) => {
     try {
-        if (isNaN(req.params.product_id)) {
+        if (isNaN(req.params.listId)) {
             return res.status(400).send("Incorrect Input");
 
         } else {
@@ -16,7 +16,7 @@ router.get("/list/:product_id", async (req, res) => {
             query += " WHERE shopping_list.id = $1";
             query += " ORDER BY item.active DESC, item.last_update DESC;";
 
-            const allListings = await pool.query(query, [req.params.product_id]);
+            const allListings = await pool.query(query, [req.params.listId]);
 
             res.status(200).json(allListings.rows);
         }
@@ -134,6 +134,110 @@ router.put('/item/:item_id', async (req, res) => {
   }
 });
 
+router.post('/item/bulk', async (req, res) => {
+  const  items  = req.body;
+
+  // Validate input
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: '"items" must be a non-empty array' });
+  }
+
+  const client = await pool.connect();
+  const insertedItems = []
+
+  try {
+    await client.query("BEGIN")
+    for(const item of items){
+      const { shopping_list_id, name, amount, unit, recurrence_days, active } = item;
+
+      if (!Number.isInteger(shopping_list_id) || shopping_list_id <= 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: '"shopping_list_id" must be a positive integer' });
+      }
+
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: '"name" is required and must be a non-empty string' });
+      }
+
+      if (amount !== undefined && (typeof amount !== 'number' || isNaN(amount)||amount<0)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: '"amount" must be a valid number' });
+      }
+
+      if (unit !== undefined && (typeof unit !== 'string' || unit.length > 15)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: '"unit" must be a string with max length 15' });
+      }
+
+      if (recurrence_days !== undefined && (!Number.isInteger(recurrence_days) || isNaN(recurrence_days)||recurrence_days<0)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: '"recurrence_days" must be an integer' });
+      }
+
+      if (active !== undefined && typeof active !== 'boolean') {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: '"active" must be a boolean' });
+      }
+
+      const listCheck = await client.query(
+          "SELECT id FROM shopping_list WHERE id = $1",
+          [shopping_list_id]
+      )
+      if (listCheck.rowCount === 0) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: 'Invalid shopping_list_id: list does not exist' });
+      }
+
+      const fields = ['shopping_list_id', 'name'];
+      const values = [shopping_list_id, name];
+      const placeholders = ['$1', '$2'];
+      let idx = 3;
+
+      fields.push('amount');
+      values.push(amount);
+      placeholders.push(`$${idx++}`);
+
+
+
+      fields.push('unit');
+      values.push(unit);
+      placeholders.push(`$${idx++}`);
+
+
+      if (recurrence_days !== undefined) {
+        fields.push('recurrence_days');
+        values.push(recurrence_days);
+        placeholders.push(`$${idx++}`);
+      }
+
+
+      fields.push('active');
+      values.push(active === undefined ? true : active);
+      placeholders.push(`$${idx++}`);
+
+
+      const query = `
+      INSERT INTO item (${fields.join(', ')})
+      VALUES (${placeholders.join(', ')})
+      RETURNING *;
+    `;
+
+      const insertResult = await client.query(query, values);
+      insertedItems.push(insertResult.rows[0])
+    }
+    await client.query('COMMIT');
+    res.status(201).json({insertedItems});
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error inserting item:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+
+})
 
 //insert new item into list
 router.post('/item', async (req, res) => {
@@ -152,8 +256,8 @@ router.post('/item', async (req, res) => {
     return res.status(400).json({ error: '"amount" must be a valid number' });
   }
 
-  if (unit !== undefined && (typeof unit !== 'string' || unit.length > 10)) {
-    return res.status(400).json({ error: '"unit" must be a string with max length 10' });
+  if (unit !== undefined && (typeof unit !== 'string' || unit.length > 15)) {
+    return res.status(400).json({ error: '"unit" must be a string with max length 15' });
   }
 
   if (recurrence_days !== undefined && (!Number.isInteger(recurrence_days) || isNaN(recurrence_days)||recurrence_days<0)) {
