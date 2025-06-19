@@ -1,17 +1,16 @@
 let express = require('express');
 let cors = require('cors');
 const app = express();
+const { auth } = require("express-oauth2-jwt-bearer")
 
 app.use(express.static('public'));
-
-const session = require('express-session');
-const pgSession = require('connect-pg-simple')(session);
-
-const dbPool = require('./pool.js');
 
 //Allow parsing JSON Bodies in Requests
 let bodyParser = require('body-parser');
 app.use(bodyParser.json());
+
+const dotenv = require('dotenv');
+dotenv.config();
 
 
 app.use(
@@ -23,23 +22,12 @@ app.use(
 
 // Session Middleware
 app.use(
-    session({
-        resave: false,
-        saveUninitialized: false,
-        store: new pgSession({
-            pool: dbPool,
-            tableName: 'user_sessions',
-            createTableIfMissing: true
-        }),
-        cookie: {
-            maxAge: 1000 * 60 * 60, // 1 hour until cookie expires
-            secure: false, // Set to true in production with HTTPS
-            httpOnly: true, // Prevent client-side JS access
-            sameSite: 'lax' // Prevent CSRF while allowing same-site requests
-        },
-        secret: 'SomeVeryVerySecretSecret'
-    })
-);
+    auth(
+        {
+            audience: "https://grocerygenie.com",
+            issuerBaseURL: "https://dev-e1s2hijgylgn4b4l.us.auth0.com/",
+        })
+)
 
 
 const shoppingRoutes = require('./shopping/shopping.js');
