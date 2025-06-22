@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
   "dependencies": {
     "body-parser": "^2.2.0",
     "connect-pg-simple": "^10.0.0",

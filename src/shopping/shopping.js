@@ -712,7 +712,7 @@ router.delete('/user/lists/:shopping_list_id', async (req, res) => {
     }
     const userId = userRes.rows[0].id;
 
-    const shoppingList = await client.query("SELECT id FROM shopping_list WHERE id = $1", [listId])
+    const shoppingList = await client.query("SELECT id, creator_id FROM shopping_list WHERE id = $1", [listId])
     if (!shoppingList.rowCount === 0) {
       await client.query('ROLLBACK');
       return res
