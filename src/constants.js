@@ -1,0 +1,10 @@
+const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID
+const AUTH0_BASE_URL=process.env.AUTH0_BASE_URL
+const AUTH0_MANAGEMENT_TOKEN=process.env.AUTH0_MANAGEMENT_TOKEN
+
+
+module.exports = {
+    IMGUR_CLIENT_ID,
+    AUTH0_BASE_URL,
+    AUTH0_MANAGEMENT_TOKEN
+}

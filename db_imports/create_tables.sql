@@ -24,7 +24,8 @@ CREATE TABLE "shopping_list" (
   "title" varchar NOT NULL,
   "symbol" varchar,
   "item_count" integer DEFAULT 0,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP),
+  "share_id" varchar(10)
 );
 
 CREATE TABLE "item" (
